@@ -13,72 +13,92 @@ const inputElevation = document.querySelector(".form__input--elevation");
 
 // Implementing the Map using the Geolocation API
 
-let map, mapEvent;
+class App {
+  #map;
+  #mapEvent;
 
-// Use an 'if' statement to handle errors in older browsers that don't support this method
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
-    // Success Callback
-    function (position) {
-      const { longitude } = position.coords;
-      const { latitude } = position.coords;
-      const coord = [latitude, longitude];
+  constructor() {
+    this._getPosition();
 
-      // Implementing the leaflet library
-      map = L.map("map").setView(coord, 12);
+    // Submittimg form to create new Workout
+    form.addEventListener("submit", this._newWorkout.bind(this));
 
-      // Tile layers (the UI of a map) can be changed by copying the tile layer code from the Leaflet Providers preview website
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        {
-          attribution: "&copy; OpenStreetMap & CARTO",
+    // Switching Options
+    inputType.addEventListener("change", this._toggleElevationField);
+  }
+
+  _getPosition() {
+    // Use an 'if' statement to handle errors in older browsers that don't support this method
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        // Success Callback
+        this._loadMap.bind(this),
+        // Error Callback
+        function () {
+          console.log("Permission is denied or location is unavailable");
         },
-      ).addTo(map);
+      );
+    }
+  }
 
-      // Handling click on the map
-      map.on("click", function (mapE) {
-        // We implement the value of "mapE" to global variable "mapEvent" in order to use this global variable below
-        mapEvent = mapE;
-        form.classList.remove("hidden");
-        inputDistance.focus();
-      });
-    },
-    // Error Callback
-    function () {
-      console.log("Permission is denied or location is unavailable");
-    },
-  );
+  _loadMap(position) {
+    const { longitude } = position.coords;
+    const { latitude } = position.coords;
+    const coord = [latitude, longitude];
+
+    // Implementing the leaflet library
+    this.#map = L.map("map").setView(coord, 12);
+
+    // Tile layers (the UI of a map) can be changed by copying the tile layer code from the Leaflet Providers preview website
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        attribution: "&copy; OpenStreetMap & CARTO",
+      },
+    ).addTo(this.#map);
+
+    // Handling click on the map
+    this.#map.on("click", this._showForm.bind(this));
+  }
+
+  _showForm(mapE) {
+    // We implement the value of "mapE" to global variable "mapEvent" in order to use this global variable below
+    this.#mapEvent = mapE;
+    form.classList.remove("hidden");
+    inputDistance.focus();
+  }
+
+  _toggleElevationField() {
+    inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
+    inputElevation.closest(".form__row").classList.toggle("form__row--hidden");
+  }
+
+  _newWorkout(e) {
+    e.preventDefault();
+
+    // Clear Input fields
+    inputDistance.value =
+      inputDuration.value =
+      inputCadence.value =
+      inputElevation.value =
+        " ";
+
+    // Display marker
+    const { lat, lng } = this.#mapEvent.latlng;
+    L.marker([lat, lng])
+      .addTo(this.#map)
+      .bindPopup(
+        L.popup({
+          maxWidth: 250,
+          minWidth: 50,
+          autoClose: false,
+          closeOnClick: false,
+          className: "running-popup",
+        }),
+      )
+      .setPopupContent("Workout")
+      .openPopup();
+  }
 }
 
-form.addEventListener("submit", function (e) {
-  e.preventDefault();
-
-  // Clear Input fields
-  inputDistance.value =
-    inputDuration.value =
-    inputCadence.value =
-    inputElevation.value =
-      " ";
-
-  // Display marker
-  const { lat, lng } = mapEvent.latlng;
-  L.marker([lat, lng])
-    .addTo(map)
-    .bindPopup(
-      L.popup({
-        maxWidth: 250,
-        minWidth: 50,
-        autoClose: false,
-        closeOnClick: false,
-        className: "running-popup",
-      }),
-    )
-    .setPopupContent("Workout")
-    .openPopup();
-});
-
-// Switching Options
-inputType.addEventListener("change", function () {
-  inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
-  inputElevation.closest(".form__row").classList.toggle("form__row--hidden");
-});
+const app = new App();
