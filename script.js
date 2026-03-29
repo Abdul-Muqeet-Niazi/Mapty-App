@@ -71,6 +71,9 @@ class App {
   constructor() {
     this._getPosition();
 
+    // Get data from local storage
+    this._getLocalStorage();
+
     // Submittimg form to create new Workout
     form.addEventListener("submit", this._newWorkout.bind(this));
 
@@ -114,6 +117,11 @@ class App {
 
     // Handling click on the map
     this.#map.on("click", this._showForm.bind(this));
+
+    // Comes from _getLocalStorage method
+    this.#workouts.forEach((work) => {
+      this._renderWorkoutMarker(work);
+    });
   }
 
   _showForm(mapE) {
@@ -189,6 +197,9 @@ class App {
       inputCadence.value =
       inputElevation.value =
         " ";
+
+    // Set local storage
+    this._setLocalStorage();
   }
 
   _renderWorkoutMarker(workout) {
@@ -271,7 +282,7 @@ class App {
 
   _moveToPopup(e) {
     const workoutEl = e.target.closest(".workout");
-    console.log(workoutEl);
+
     // Guard Clause
     if (!workoutEl) return;
 
@@ -285,6 +296,32 @@ class App {
         duration: 1,
       },
     });
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem("workouts", this.#workouts));
+
+    // If data is not present!
+    if (!data) return;
+
+    // Logic: Insert the local storage data in the "this.#workouts" array
+    this.#workouts = data;
+    this.#workouts.forEach((work) => {
+      this._renderWorkoutList(work);
+      // this._renderWorkoutMarker(work);
+      // So here, Right after the page loads, we try to add a marker to the map, but the map hasn’t been loaded or defined yet, so the marker cannot be added. So, we will add this method to upper method "_loadMap" where right after the map loads.
+    });
+  }
+
+  // Public Interface
+  // This method will allow us to programmatically reset our local storage through console!
+  reset() {
+    localStorage.removeItem("workouts");
+    location.reload();
   }
 }
 
